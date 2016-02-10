@@ -223,11 +223,11 @@ void main()
   printf("Inorder: ");
   inOrder(root);
   printf("\n");
-  findSum(root,130);
+  findSum(root,130); /* not the correct one*/
   int arr[1000];
   printf("\nFound Path:%d\n",findSumUtil2(root,arr,0,13));
   printPaths(root,arr,0);
-  //mirror(root);
+  mirror(root);
 
   //doubleTree(root);
   //inOrder(root);
