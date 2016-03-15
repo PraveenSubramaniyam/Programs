@@ -3,11 +3,11 @@
 typedef struct 
 {
   int intVal;
-  char charVal;
+  char* charVal;
 }str;
 
 void main()
 {
   str *nodePtr,node;
-  printf("sizeofNode:%d SizeofNodePtr:%d",sizeof(node),sizeof(*nodePtr));
+  printf("sizeofNode:%d SizeofNodePtr:%d:%d\n",sizeof(node),sizeof(*nodePtr),sizeof(int*));
 }

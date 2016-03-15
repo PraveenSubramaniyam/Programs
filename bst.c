@@ -217,12 +217,12 @@ int inOrderBST(tree *node,int lastVal)
     return 1;
   else
   {
-    inOrderBST(node->left,node->value);
+    return inOrderBST(node->left,node->value);
     if(lastVal > node->value)
     {
       return 0;
     }
-    inOrderBST(node->right,node->value);
+    return inOrderBST(node->right,node->value);
   }
 }
 

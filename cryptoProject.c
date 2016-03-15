@@ -6,9 +6,9 @@
 typedef struct keyVal key;
 
 struct keyVal {
-  unsigned int a;
-  unsigned int b;
-  unsigned int x;
+  int a;
+  int b;
+  int x;
   unsigned int preA;
   unsigned int preB;
   unsigned int preX;
@@ -39,7 +39,7 @@ unsigned char L[] = { 0xed, 0x3e, 0x0d, 0x20, 0xa9, 0xc3, 0x36, 0x75, 0x4c, 0x2c
                        0xc5, 0xe7, 0x81, 0x4e, 0x2b, 0xce, 0x11, 0x4d, 0x5e, 0x11, 0x22, 0x57, 0x38, 0x33};
 
 
-key *head = NULL;
+key *head = NULL, *tmpHead = NULL;
 
 unsigned char high(unsigned int X)
 {
@@ -47,18 +47,42 @@ unsigned char high(unsigned int X)
 }
 
 
-unsigned int initcalcX(unsigned int a , unsigned int b, int key)
+int mod (int a, int b)
 {
-  return (key - L[high(a)] - L[high(b)]) % 256;
+   int ret = a % b;
+   if(ret < 0)
+     ret+=b;
+   return ret;
 }
 
-int checkValid(unsigned int a, unsigned int b, unsigned int x, int key)
+int initcalcX(int a , int b, int key)
+{
+  return mod((key - L[high(a)] - L[high(b)]),256);
+}
+
+int checkValid(int a, int b, int x, int key)
 {
   int newX;
-  newX = (key - L[high(a)] - L[high(b)]) % 256;
+  newX = mod((key - L[high(a)] - L[high(b)]), 256);
   if(newX == high(x))
     return 1;
   return 0;
+}
+
+void inserttmpHead(key *node)
+{
+  if(tmpHead == NULL)
+  {
+    tmpHead = node;
+  }
+  else
+  {
+    key *temp = tmpHead;
+    while(temp->next != NULL)
+      temp = temp->next;
+
+    temp->next = node;
+  }
 }
 
 void makeCopy(key *node, unsigned int a, unsigned int b, unsigned int x, int bShift)
@@ -66,16 +90,24 @@ void makeCopy(key *node, unsigned int a, unsigned int b, unsigned int x, int bSh
   key *tmp;
   tmp = (key *)malloc(sizeof(key));
   memset((char*)tmp,0,sizeof(key));
-  tmp -> preA = tmp->preA | (tmp->a & 0x01) << node->position;
+  tmp ->preA = node->preA;
+  tmp->preB = node->preB;
+  tmp->preX = node->preX;
+  tmp->position = node->position;
+  tmp->bPosition = node->bPosition;
+  tmp -> preA = tmp->preA | ((node->a & 0x01) << node->position);
   if(bShift == 1)
-    tmp -> preB = tmp->preB | (tmp->b & 0x01) << node->bPosition;
+    tmp -> preB = tmp->preB | ((node->b & 0x01) << node->bPosition);
   else if (bShift == 2)
-    tmp -> preB = tmp->preB | (tmp->b & 0x03) << node->bPosition;
+    tmp -> preB = tmp->preB | ((node->b & 0x03) << node->bPosition);
 
-  tmp -> preX = tmp->preX | (tmp->x & 0x01) << node->position;
+  tmp -> preX = tmp->preX | (node->x & 0x01) << node->position;
   tmp -> a = a;
   tmp-> b = b;
   tmp-> x = x;
+
+  tmp->next = NULL;
+  inserttmpHead(tmp);
 }
 
 void positionInc(key *node, int bPos)
@@ -130,15 +162,17 @@ void extendVal(key* node, int key)
   if(checkValid((node->a)>>1,(node->b)>>1|0x80,(node->x)>>1|0x80,key))
   {
     positionInc(node,1);
-    makeCopy(node,)
+    makeCopy(node,(node->a)>>1,(node->b)>>1|0x80,(node->x)>>1|0x80,1);
   }
   if(checkValid((node->a)>>1|0x80,(node->b)>>1,(node->x)>>1|0x80,key))
   {
-	  positionInc(node,1);
+    positionInc(node,1);
+    makeCopy(node,(node->a)>>1|0x80,(node->b)>>1,(node->x)>>1|0x80,1);
   }
   if(checkValid((node->a)>>1|0x80,(node->b)>>1|0x80,(node->x)>>1|0x80,key))
   {
-	  positionInc(node,1);
+    positionInc(node,1);
+    makeCopy(node,(node->a)>>1|0x80,(node->b)>>1|0x80,(node->x)>>1|0x80,1);
   }
 
   /* a b  x
@@ -149,19 +183,26 @@ void extendVal(key* node, int key)
    */
   if(checkValid((node->a)>>1,(node->b)>>2,(node->x)>>1,key))
   {
-	  positionInc(node,1);
+    positionInc(node,2);
+    makeCopy(node,(node->a)>>1,(node->b)>>2,(node->x)>>1,2);
   }
+
   if(checkValid((node->a)>>1,(node->b)>>2|0x40,(node->x)>>1,key))
   {
-	  positionInc(node,1);
+    positionInc(node,2);
+    makeCopy(node,(node->a)>>1,(node->b)>>2|0x40,(node->x)>>1,2);
   }
+
   if(checkValid((node->a)>>1,(node->b)>>2|0x80,(node->x)>>1,key))
   {
-	  positionInc(node,1);
+    positionInc(node,2);
+    makeCopy(node,(node->a)>>1,(node->b)>>2|0x80,(node->x)>>1,2);
   }
+
   if(checkValid((node->a)>>1,(node->b)>>2|0xc0,(node->x)>>1,key))
   {
-	  positionInc(node,1);
+    positionInc(node,2);
+    makeCopy(node,(node->a)>>1,(node->b)>>2|0xc0,(node->x)>>1,2);
   }
 
   /* a b  x
@@ -172,19 +213,23 @@ void extendVal(key* node, int key)
   */
   if(checkValid((node->a)>>1,(node->b)>>2,(node->x)>>1|0x80,key))
   {
-	  positionInc(node,1);
+	  positionInc(node,2);
+	  makeCopy(node,(node->a)>>1,(node->b)>>2,(node->x)>>1|0x80,2);
   }
   if(checkValid((node->a)>>1,(node->b)>>2|0x40,(node->x)>>1|0x80,key))
   {
-	  positionInc(node,1);
+	  positionInc(node,2);
+	  makeCopy(node,(node->a)>>1,(node->b)>>2|0x40,(node->x)>>1|0x80,2);
   }
   if(checkValid((node->a)>>1,(node->b)>>2|0x80,(node->x)>>1|0x80,key))
   {
-	  positionInc(node,1);
+	  positionInc(node,2);
+	  makeCopy(node,(node->a)>>1,(node->b)>>2|0x80,(node->x)>>1|0x80,2);
   }
   if(checkValid((node->a)>>1,(node->b)>>2|0xc0,(node->x)>>1|0x80,key))
   {
-	  positionInc(node,1);
+	  positionInc(node,2);
+	  makeCopy(node,(node->a)>>1,(node->b)>>2|0xc0,(node->x)>>1|0x80,2);
   }
 
 
@@ -196,19 +241,23 @@ void extendVal(key* node, int key)
    */
   if(checkValid((node->a)>>1|0x80,(node->b)>>2,(node->x)>>1,key))
   {
-	  positionInc(node,1);
+	  positionInc(node,2);
+	  makeCopy(node,(node->a)>>1|0x80,(node->b)>>2,(node->x)>>1,2);
   }
   if(checkValid((node->a)>>1|0x80,(node->b)>>2|0x40,(node->x)>>1,key))
   {
-	  positionInc(node,1);
+	  positionInc(node,2);
+	  makeCopy(node,(node->a)>>1|0x80,(node->b)>>2|0x40,(node->x)>>1,2);
   }
   if(checkValid((node->a)>>1|0x80,(node->b)>>2|0x80,(node->x)>>1,key))
   {
-	  positionInc(node,1);
+	  positionInc(node,2);
+	  makeCopy(node,(node->a)>>1|0x80,(node->b)>>2|0x80,(node->x)>>1,2);
   }
   if(checkValid((node->a)>>1|0x80,(node->b)>>2|0xc0,(node->x)>>1,key))
   {
-	  positionInc(node,1);
+	  positionInc(node,2);
+	  makeCopy(node,(node->a)>>1|0x80,(node->b)>>2|0xc0,(node->x)>>1,2);
   }
 
   /* a b  x
@@ -219,21 +268,64 @@ void extendVal(key* node, int key)
   */
   if(checkValid((node->a)>>1|0x80,(node->b)>>2,(node->x)>>1|0x80,key))
   {
-	  positionInc(node,1);
+	  positionInc(node,2);
+	  makeCopy(node,(node->a)>>1|0x80,(node->b)>>2,(node->x)>>1|0x80,2);
   }
   if(checkValid((node->a)>>1|0x80,(node->b)>>2|0x40,(node->x)>>1|0x80,key))
   {
-	  positionInc(node,1);
+	  positionInc(node,2);
+	  makeCopy(node,(node->a)>>1|0x80,(node->b)>>2|0x40,(node->x)>>1|0x80,2);
   }
   if(checkValid((node->a)>>1|0x80,(node->b)>>2|0x80,(node->x)>>1|0x80,key))
   {
-	  positionInc(node,1);
+	  positionInc(node,2);
+	  makeCopy(node,(node->a)>>1|0x80,(node->b)>>2|0x80,(node->x)>>1|0x80,2);
   }
   if(checkValid((node->a)>>1|0x80,(node->b)>>2|0xc0,(node->x)>>1|0x80,key))
   {
-	  positionInc(node,1);
+	  positionInc(node,2);
+	  makeCopy(node,(node->a)>>1|0x80,(node->b)>>2|0xc0,(node->x)>>1|0x80,2);
   }
 }
+
+int deleteNode(key *n)
+{
+  if(head == NULL)
+  {
+    printf("Empty List\n");
+    return 0;
+  }
+
+  if(head == n)
+  {
+    if(head->next == NULL)
+    {
+      printf("Only One Node.. Returning one\n");
+      free(head);
+      head = NULL;
+      return 1;
+    }
+    head = head->next;
+    free(n);
+    return 2;
+  }
+
+  key *prev = head;
+  while(prev->next != NULL && prev->next != n)
+    prev = prev->next;
+
+  if(prev->next == NULL)
+  {
+    printf("Given node is not present in Linked List\n");
+    return 3;
+  }
+
+  prev->next = prev->next->next;
+  free(n);
+  return 4;
+}
+
+
 
 void insert(int a, int b, int k)
 {
@@ -245,28 +337,63 @@ void insert(int a, int b, int k)
     head-> b = b;
     head -> x = initcalcX(a,b,k);
     head->position = -1;
+    head->bPosition = -1;
     head ->next= NULL;
   }
   else
   {
     key *temp = head, *temp2;
+
     while(temp->next != NULL)
       temp = temp->next;
+
     temp2 = (key *)malloc(sizeof(key));
     memset(temp2,0,sizeof(key));
     temp2-> a = a;
     temp2-> b = b;
     temp2-> x = initcalcX(a,b,k);
-    temp2->next= NULL;
     temp2->position = -1;
+    temp2->bPosition = -1;
+    temp2->next= NULL;
+
+
     temp->next = temp2;
+  }
+}
+
+void printCount(key *tmp)
+{
+  int count = 0;
+  while(tmp)
+  {
+    //printf("%u\n",tmp->a);
+	  count++;
+    tmp = tmp->next;
+  }
+  printf("Val:%d\n",count);
+}
+
+void printValues(key *tmp)
+{
+  while(tmp)
+  {
+    printf("a:%d\n",tmp->a);
+    printf("b:%d\n",tmp->b);
+    printf("x:%d\n",tmp->x);
+    printf("preA:%u\n",tmp->preA);
+    printf("preB:%u\n",tmp->preB);
+    printf("preX:%u\n",tmp->preX);
+    printf("position:%d\n",tmp->position);
+    printf("bposition:%d\n",tmp->bPosition);
+
+    tmp = tmp->next;
   }
 }
 
 void main()
 {
   int i, j,count = 0;
-
+  key *tmp,*prev;
   int c = 0;
 
   for(i = 0 ;i<256;i++)
@@ -276,8 +403,8 @@ void main()
       insert(i,j,K[count]);
     }
   }
-  count++;
-  key *tmp = head;
+
+  tmp = head;
   while(tmp)
   {
     c++;
@@ -285,9 +412,31 @@ void main()
   }
   printf("TotalElements:%d\n",c);
 
-  tmp = head;
+  while(1)
+  {
+    /*variable for looping Key*/
+    count++;
 
-   extendVal(tmp->a,tmp->b,tmp->x,K[count]);
-
-
+    tmp = head;
+    /* If count has reached 30., then all the keyStream have been iterated. So break*/
+    if(30 == count)
+    {
+      printValues(tmp);
+      break;
+    }
+    tmp = head;
+    while(tmp)
+    {
+      extendVal(tmp,K[count]);
+      if(deleteNode(tmp) == 1)
+        tmp = NULL;
+      else
+        tmp = tmp->next;
+    }
+    /* Copy the tmpHead to head., since the extension nodes will be only in tmpHead */
+    head = tmpHead;
+    printf("Iteration: %d\n",count);
+    printCount(head);
+    tmpHead = NULL;
+  }
 }

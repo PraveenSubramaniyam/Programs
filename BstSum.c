@@ -29,7 +29,7 @@ void insert(bst **root,int value)
   }
 }
 
-
+/* don't study this */
 void findSumUtil(bst *node,int *arr,int size,int sum)
 {
   sum = sum - node->value;
