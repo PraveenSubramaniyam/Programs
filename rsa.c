@@ -1,158 +1,153 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "rsa.h"
 
-#define MAXLEN 1024
-typedef struct {
-  char digits[MAXLEN];
-  int noOfDigits;
-}myInteger;
 
-void makezero(myInteger *a);
-int leftshift(myInteger *a, int b);
-void RemoveMSBZero(myInteger *a);
-void add(myInteger * a,int aCounter, myInteger *b,int bCounter, myInteger *c,int cCounter,int carry);
-void divide(myInteger *a , myInteger *b, myInteger *c,myInteger *m);
-int ComparemyInteger(myInteger * a, myInteger *b);
-int  subtract(myInteger *a, int aCounter , myInteger *b, int bCounter,myInteger *c, int cCounter , int borrow);
-
-void add(myInteger * a,int aCounter, myInteger *b,int bCounter, myInteger *c,int cCounter,int carry)
+void add(myInteger num1, int num1Count, myInteger num2,int num2count, myInteger *result,int cCounter,int carry)
 {
-  if(aCounter < a->noOfDigits && aCounter < b->noOfDigits){
-			int iTemp = a->digits[aCounter] + b->digits[bCounter] + carry;
-			c->digits[cCounter] = iTemp %10;
-			c->noOfDigits = cCounter+1;
-			carry = iTemp / 10;
-			add(a,aCounter + 1, b , bCounter + 1, c, cCounter + 1, carry);
-		}
-		else if(bCounter < b->noOfDigits){
-			c->digits[cCounter] = b->digits[bCounter] + carry;
-			c->noOfDigits = cCounter+1;
-			add(a,aCounter, b , bCounter + 1, c, cCounter + 1, 0);
-		}
-		else if(aCounter < a->noOfDigits){
-			c->digits[cCounter] = a->digits[aCounter] + carry;
-			c->noOfDigits = cCounter+1;
-			add(a,aCounter + 1, b , bCounter, c, cCounter + 1, 0);
-		}
-		else if(carry != 0){
-			c->digits[cCounter] = carry;
-			c->noOfDigits = cCounter + 1;
-		}
+  if(num1Count < num1.noOfDigits && num1Count < num2.noOfDigits)
+  {
+    int iTemp = num1.digits[num1Count] + num2.digits[num2count] + carry;
+    result->digits[cCounter] = iTemp %10;
+    result->noOfDigits = cCounter+1;
+    carry = iTemp / 10;
+    add(num1,num1Count + 1, num2, num2count + 1, result, cCounter + 1, carry);
+  }
+  else if(num2count < num2.noOfDigits)
+  {
+    result->digits[cCounter] = num2.digits[num2count] + carry;
+    result->noOfDigits = cCounter+1;
+    add(num1,num1Count, num2, num2count + 1, result, cCounter + 1, 0);
+  }
+  else if(num1Count < num1.noOfDigits)
+  {
+    result->digits[cCounter] = num1.digits[num1Count] + carry;
+    result->noOfDigits = cCounter+1;
+    add(num1,num1Count + 1, num2 , num2count, result, cCounter + 1, 0);
+  }
+  else if(carry != 0)
+  {
+    result->digits[cCounter] = carry;
+    result->noOfDigits = cCounter + 1;
+  }
 }
 
 void divide(myInteger *a , myInteger *b, myInteger *c,myInteger *m)
 {
-	myInteger r ;
-	myInteger tmp;
-	int i = 0, j = 0;
-	makezero(c);
-	makezero(&r);
-	makezero(&tmp);
+  myInteger r ;
+  myInteger tmp;
+  int i = 0, j = 0;
+  memsetMyIntegertoZero(c);
+  memsetMyIntegertoZero(&r);
+  memsetMyIntegertoZero(&tmp);
 
-	c->noOfDigits = a->noOfDigits;
-	for(i = a->noOfDigits - 1; i>=0;i--){
-		leftshift(&r , 1);
-
-		//printmyInteger(&r);
-		r.digits[0] = a->digits[i];
-		c->digits[i] = 0;
-		RemoveMSBZero(&r);
-		while(ComparemyInteger(&r,b) == 1 || ComparemyInteger(&r,b) == -1){
-			c->digits[i]++;
-			subtract(&r,0,b,0,&tmp,0,0);
-			RemoveMSBZero(&tmp);
-			r = tmp;
-			//c->noOfDigits = i;
-			//printmyInteger(&tmp);
-		}
-
-		*m = r;
-	}
-	RemoveMSBZero(m);
-	RemoveMSBZero(c);
+  c->noOfDigits = a->noOfDigits;
+  for(i = a->noOfDigits - 1; i>=0;i--)
+  {
+    leftshift(&r , 1);
+    r.digits[0] = a->digits[i];
+    c->digits[i] = 0;
+    stripZero(&r);
+    while(ComparemyInteger(r,*b) == 1 || ComparemyInteger(r,*b) == -1)
+    {
+      c->digits[i]++;
+      subtract(&r,0,b,0,&tmp,0,0);
+      stripZero(&tmp);
+      r = tmp;
+    }
+    *m = r;
+  }
+  stripZero(m);
+  stripZero(c);
 }
 
-void RemoveMSBZero(myInteger *a)
+void stripZero(myInteger *num)
 {
-	int i = 0;
-	int length = a->noOfDigits;
-	for(i = a->noOfDigits - 1 ; i >=0;i--){
-		if(a->digits[i] == 0){
-			a->noOfDigits--;
-		}
-		else
-			break;
-	}
-	if(a->noOfDigits == 0){
-		a->digits[i] = 0;
-		a->noOfDigits = 1;
-	}
+  int loop = num->noOfDigits - 1 ;
+  while(loop >=0)
+  {
+    if(num->digits[loop] != 0)
+       break;
+    num->noOfDigits--;
+    loop --;
+  }
+  if(num->noOfDigits == 0){
+    num->digits[loop] = 0;
+    num->noOfDigits = 1;
+  }
 }
 
-int leftshift(myInteger *a, int b){
-	int i = 0;
-	for (i=a->noOfDigits - 1; i>=0; i--)
-		a->digits[i+b] = a->digits[i];
+void leftshift(myInteger *a, int b)
+{
+  int i = 0;
+  for (i=a->noOfDigits - 1; i>=0; i--)
+    a->digits[i+b] = a->digits[i];
 
-	for (i=0; i<b; i++)
-		a->digits[i] = 0;
+  for (i=0; i<b; i++)
+    a->digits[i] = 0;
 
-	a->noOfDigits += b;
-	RemoveMSBZero(a);
+  a->noOfDigits += b;
+  stripZero(a);
 }
 
 void generateMyInteger(myInteger *a,char *b)
 {
-	int i = 0, j = 0;
-	a->noOfDigits = strlen(b);
+  a->noOfDigits = strlen(b);
+  int loop = a->noOfDigits -1, loopVar = 0;
 
-	for(i = a->noOfDigits - 1,j = 0 ; i >=0; i--,j++){
-		a->digits[j] = b[i] - '0';
-	}
+  while(loop >= 0)
+  {
+    a->digits[loopVar] = b[loop] - '0';
+    loop--;
+    loopVar++;
+  }
 }
 
 void generateOrgInteger(myInteger *myInt, char *src)
 {
-  int loop,loopVar;
-  for(loop = myInt->noOfDigits - 1,loopVar = 0 ; loop >=0; loop--,loopVar++){
+  int loop = myInt->noOfDigits - 1,loopVar =0;
+  while (loop >=0)
+  {
     src[loopVar] = myInt->digits[loop] + '0';
+    loop-=1;
+    loopVar+=1;
   }
 }
 
-void makezero(myInteger *a)
+void memsetMyIntegertoZero(myInteger *myInt)
 {
-	memset(a,0x00,sizeof(myInteger));
-	a->noOfDigits = 1;
-	a->digits[0] = 0;
+  memset(myInt,0,sizeof(myInteger));
+  myInt->noOfDigits = 1;
+  myInt->digits[0] = 0;
 }
 
-void printmyInteger(myInteger *a)
+void printmyInteger(myInteger intVal)
 {
-	int i = 0;
-	//printf("%d\r\n",a->length);
-
-	for(i = a->noOfDigits -1; i >=0 ; i--){
-		printf("%d",a->digits[i]);
-	}
-	printf("\r\n");
-}
-
-int ComparemyInteger(myInteger * a, myInteger *b)
-{
-  int i =0;
-  if(a->noOfDigits > b->noOfDigits){
-    return 1;
+  int i = intVal.noOfDigits -1;
+  while(i >=0)
+  {
+    printf("%d",intVal.digits[i]);
+    i--;
   }
-  else if(a->noOfDigits < b->noOfDigits){
+  printf("\n");
+}
+
+int ComparemyInteger(myInteger int1, myInteger int2)
+{
+  int i = 0;
+  if(int1.noOfDigits < int2.noOfDigits){
     return 0;
   }
+  else if(int1.noOfDigits > int2.noOfDigits){
+    return 1;
+  }
   else {
-    for(i = a->noOfDigits -1; i >= 0; i--){
-      if(a->digits[i] > b->digits[i]){
+    for(i = int1.noOfDigits -1; i >= 0; i--){
+      if(int1.digits[i] > int2.digits[i]){
         return 1;
       }
-      else if(a->digits[i] < b->digits[i]){
+      else if(int1.digits[i] < int2.digits[i]){
         return 0;
       }
     }
@@ -160,29 +155,23 @@ int ComparemyInteger(myInteger * a, myInteger *b)
   return -1;
 }
 
-void multiply(myInteger * a, myInteger *b , myInteger *c)
+void multiply(myInteger *num1, myInteger *num2 , myInteger *result)
 {
+  myInteger r ;
+  myInteger tmp;
+  memsetMyIntegertoZero(result);
+  memsetMyIntegertoZero(&tmp);
+  int i = 0, j = 0;
+  r = *num1;
 
-	myInteger r ;
-		myInteger tmp;
-		makezero(c);
-		makezero(&tmp);
-		int i = 0, j = 0;
-		r = *a;
-		for(i = 0; i <= b->noOfDigits-1; i++){
-			for(j = 1; j <= b->digits[i];j++){
-				add(c,0,&r,0,&tmp,0,0);
-				*c = tmp;
-				//strcpy(c->number,tmp.number);
-				//c->length += tmp.length;
-
-			}
-
-			leftshift(&r , 1);
-		}
-		RemoveMSBZero(c);
-
-
+  for(i = 0; i <= num2->noOfDigits-1; i++){
+    for(j = 1; j <= num2->digits[i];j++){
+      add(*result,0,r,0,&tmp,0,0);
+      *result = tmp;
+    }
+    leftshift(&r , 1);
+  }
+  stripZero(result);
 }
 
 void trimSlash(char *source)
@@ -208,7 +197,6 @@ void myPopen(char *cmd, char *output,size_t n)
     printf("Failed to run command %s\n",cmd);
     exit(1);
   }
-
   memset(tmp,0,sizeof(tmp));
   memset(output,0,n);
   /* Read the output a line at a time - output it. */
@@ -221,32 +209,32 @@ void myPopen(char *cmd, char *output,size_t n)
 }
 
 int  subtract(myInteger *a, int aCounter , myInteger *b, int bCounter,myInteger *c, int cCounter , int borrow){
-	if(ComparemyInteger(a,b) == 0){
-		printf("a value should be greater");
-		return 0;
-	}
-	if(aCounter < a->noOfDigits && aCounter < b->noOfDigits){
-		int op1 = a->digits[aCounter] - borrow;
-		int op2 = b->digits[bCounter];
-		if(op2 > op1)
-		{
-			op1 = op1 + 10;
-			borrow = 1;
-		}
-		else
-			borrow = 0;
-		c->digits[cCounter] = op1 - op2;
-		c->noOfDigits = cCounter+1;
-		subtract(a,aCounter + 1, b , bCounter + 1, c, cCounter + 1,borrow);
-	}
-	else if(aCounter < a->noOfDigits){
-		int op1 = a->digits[aCounter] - borrow;
-		c->digits[cCounter] = op1;
-		c->noOfDigits = cCounter+1;
-		borrow = 0;
-		subtract(a,aCounter + 1, b , bCounter, c, cCounter + 1, 0);
-	}
-	RemoveMSBZero(c);
+  if(ComparemyInteger(*a,*b) == 0){
+    printf("a value should be greater");
+    return 0;
+  }
+  if(aCounter < a->noOfDigits && aCounter < b->noOfDigits){
+    int op1 = a->digits[aCounter] - borrow;
+    int op2 = b->digits[bCounter];
+    if(op2 > op1)
+    {
+      op1 = op1 + 10;
+      borrow = 1;
+    }
+    else
+      borrow = 0;
+    c->digits[cCounter] = op1 - op2;
+    c->noOfDigits = cCounter+1;
+    subtract(a,aCounter + 1, b , bCounter + 1, c, cCounter + 1,borrow);
+  }
+  else if(aCounter < a->noOfDigits){
+    int op1 = a->digits[aCounter] - borrow;
+    c->digits[cCounter] = op1;
+    c->noOfDigits = cCounter+1;
+    borrow = 0;
+    subtract(a,aCounter + 1, b , bCounter, c, cCounter + 1, 0);
+  }
+  stripZero(c);
 }
 
 
@@ -263,8 +251,6 @@ void main()
   myInteger m;
   int loop;
 
-
-
   memset(temp,0,sizeof(temp));
   snprintf(temp,sizeof(temp)-1,"echo %s | tr '[:lower:]' '[:upper:]'","c0eacf32dc0492464d9616fefc3d01f56589a137781bf6cf56784dea1c44ef52d61b1025655f370eb78646716f93e0a5");
 
@@ -277,8 +263,8 @@ void main()
 
   myPopen(temp,RSAcipherDec,sizeof(RSAcipherDec));
   printf("RSA CipherText Dec: %s",RSAcipherDec);
-  printmyInteger(&m);
-  makezero(&m);
+  printmyInteger(m);
+  memsetMyIntegertoZero(&m);
   generateMyInteger(&m,RSAcipherDec);
   newlength = (m.noOfDigits - 1) / 3 + 1;
   char lowerbound[newlength+1], upperbound[newlength +2];
@@ -302,17 +288,17 @@ void main()
   while(1) {
       myInteger tempadd;
       myInteger temp,remainder;
-      add(&lb,0,&ub,0,&tempadd,0,0);
+      add(lb,0,ub,0,&tempadd,0,0);
       divide(&tempadd,&two,&temp,&remainder);
       myInteger tempmul;
       multiply(&temp,&temp,&tempmul);
       myInteger tempcube;
       multiply(&temp, &tempmul, &tempcube);
-      if(ComparemyInteger(&tempcube,&m) == -1) {
+      if(ComparemyInteger(tempcube,m) == -1) {
         message = temp;
         //exit(0);
         break;
-      } else if(ComparemyInteger(&tempcube,&m) == 1){
+      } else if(ComparemyInteger(tempcube,m) == 1){
         ub = temp;
       } else {
         lb = temp;
