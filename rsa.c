@@ -4,63 +4,86 @@
 #include "rsa.h"
 
 
-void add(myInteger num1, int num1Count, myInteger num2,int num2count, myInteger *result,int cCounter,int carry)
+void myPopen(char *cmd, char *output,size_t n)
 {
-  if(num1Count < num1.noOfDigits && num1Count < num2.noOfDigits)
-  {
-    int iTemp = num1.digits[num1Count] + num2.digits[num2count] + carry;
-    result->digits[cCounter] = iTemp %10;
-    result->noOfDigits = cCounter+1;
-    carry = iTemp / 10;
-    add(num1,num1Count + 1, num2, num2count + 1, result, cCounter + 1, carry);
+  char tmp[512];
+  FILE *fp;
+  /* Open the command for reading. */
+  fp = popen(cmd, "r");
+  if (fp == NULL) {
+    printf("Failed to run command %s\n",cmd);
+    exit(1);
   }
-  else if(num2count < num2.noOfDigits)
+  memset(tmp,0,sizeof(tmp));
+  memset(output,0,n);
+  /* Read the output a line at a time - output it. */
+  while (fgets(tmp,sizeof(tmp)-1, fp) != NULL)
   {
-    result->digits[cCounter] = num2.digits[num2count] + carry;
-    result->noOfDigits = cCounter+1;
-    add(num1,num1Count, num2, num2count + 1, result, cCounter + 1, 0);
+    trimSlash(tmp);
+    strncat(output,tmp,n-strlen(output)-1);
   }
-  else if(num1Count < num1.noOfDigits)
-  {
-    result->digits[cCounter] = num1.digits[num1Count] + carry;
-    result->noOfDigits = cCounter+1;
-    add(num1,num1Count + 1, num2 , num2count, result, cCounter + 1, 0);
-  }
-  else if(carry != 0)
-  {
-    result->digits[cCounter] = carry;
-    result->noOfDigits = cCounter + 1;
-  }
+  pclose(fp);
 }
 
-void divide(myInteger *a , myInteger *b, myInteger *c,myInteger *m)
+void divide(myInteger *num1 , myInteger *num2, myInteger *result,myInteger *remainder)
 {
   myInteger r ;
   myInteger tmp;
   int i = 0, j = 0;
-  memsetMyIntegertoZero(c);
+  memsetMyIntegertoZero(result);
   memsetMyIntegertoZero(&r);
   memsetMyIntegertoZero(&tmp);
 
-  c->noOfDigits = a->noOfDigits;
-  for(i = a->noOfDigits - 1; i>=0;i--)
+  result->noOfDigits = num1->noOfDigits;
+  for(i = num1->noOfDigits - 1; i>=0;i--)
   {
     leftshift(&r , 1);
-    r.digits[0] = a->digits[i];
-    c->digits[i] = 0;
+    r.digits[0] = num1->digits[i];
+    result->digits[i] = 0;
     stripZero(&r);
-    while(ComparemyInteger(r,*b) == 1 || ComparemyInteger(r,*b) == -1)
+    while(ComparemyInteger(r,*num2) == 1 || ComparemyInteger(r,*num2) == -1)
     {
-      c->digits[i]++;
-      subtract(&r,0,b,0,&tmp,0,0);
+      result->digits[i]++;
+      subtract(&r,0,num2,0,&tmp,0,0);
       stripZero(&tmp);
       r = tmp;
     }
-    *m = r;
+    *remainder = r;
   }
-  stripZero(m);
-  stripZero(c);
+  stripZero(remainder);
+  stripZero(result);
 }
+
+
+void add(myInteger num1, int num1Count, myInteger num2,int num2count, myInteger *result,int resultcount,int carry)
+{
+  if(num1Count < num1.noOfDigits && num1Count < num2.noOfDigits)
+  {
+    int iTemp = num1.digits[num1Count] + num2.digits[num2count] + carry;
+    result->digits[resultcount] = iTemp %10;
+    result->noOfDigits = resultcount+1;
+    carry = iTemp / 10;
+    add(num1,num1Count + 1, num2, num2count + 1, result, resultcount + 1, carry);
+  }
+  else if(num2count < num2.noOfDigits)
+  {
+    result->digits[resultcount] = num2.digits[num2count] + carry;
+    result->noOfDigits = resultcount+1;
+    add(num1,num1Count, num2, num2count + 1, result, resultcount + 1, 0);
+  }
+  else if(num1Count < num1.noOfDigits)
+  {
+    result->digits[resultcount] = num1.digits[num1Count] + carry;
+    result->noOfDigits = resultcount+1;
+    add(num1,num1Count + 1, num2 , num2count, result, resultcount + 1, 0);
+  }
+  else if(carry != 0)
+  {
+    result->digits[resultcount] = carry;
+    result->noOfDigits = resultcount + 1;
+  }
+}
+
 
 void stripZero(myInteger *num)
 {
@@ -78,27 +101,27 @@ void stripZero(myInteger *num)
   }
 }
 
-void leftshift(myInteger *a, int b)
+void leftshift(myInteger *num, int count)
 {
   int i = 0;
-  for (i=a->noOfDigits - 1; i>=0; i--)
-    a->digits[i+b] = a->digits[i];
+  for (i=num->noOfDigits - 1; i>=0; i--)
+    num->digits[i+count] = num->digits[i];
 
-  for (i=0; i<b; i++)
-    a->digits[i] = 0;
+  for (i=0; i<count; i++)
+    num->digits[i] = 0;
 
-  a->noOfDigits += b;
-  stripZero(a);
+  num->noOfDigits += count;
+  stripZero(num);
 }
 
-void generateMyInteger(myInteger *a,char *b)
+void generateMyInteger(myInteger *num, char *str)
 {
-  a->noOfDigits = strlen(b);
-  int loop = a->noOfDigits -1, loopVar = 0;
+  num->noOfDigits = strlen(str);
+  int loop = num->noOfDigits -1, loopVar = 0;
 
   while(loop >= 0)
   {
-    a->digits[loopVar] = b[loop] - '0';
+    num->digits[loopVar] = str[loop] - '0';
     loop--;
     loopVar++;
   }
@@ -174,6 +197,7 @@ void multiply(myInteger *num1, myInteger *num2 , myInteger *result)
   stripZero(result);
 }
 
+/* Function to remove slash and new line from the string */
 void trimSlash(char *source)
 {
   char* i = source;
@@ -187,35 +211,16 @@ void trimSlash(char *source)
   *i = 0;
 }
 
-void myPopen(char *cmd, char *output,size_t n)
-{
-  char tmp[512];
-  FILE *fp;
-  /* Open the command for reading. */
-  fp = popen(cmd, "r");
-  if (fp == NULL) {
-    printf("Failed to run command %s\n",cmd);
-    exit(1);
-  }
-  memset(tmp,0,sizeof(tmp));
-  memset(output,0,n);
-  /* Read the output a line at a time - output it. */
-  while (fgets(tmp,sizeof(tmp)-1, fp) != NULL)
-  {
-    trimSlash(tmp);
-    strncat(output,tmp,n-strlen(output)-1);
-  }
-  pclose(fp);
-}
 
-int  subtract(myInteger *a, int aCounter , myInteger *b, int bCounter,myInteger *c, int cCounter , int borrow){
-  if(ComparemyInteger(*a,*b) == 0){
+
+void subtract(myInteger *num1, int num1Count, myInteger *num2, int num2Count, myInteger *result, int resCount, int borrow)
+{
+  if(ComparemyInteger(*num1,*num2) == 0){
     printf("a value should be greater");
-    return 0;
   }
-  if(aCounter < a->noOfDigits && aCounter < b->noOfDigits){
-    int op1 = a->digits[aCounter] - borrow;
-    int op2 = b->digits[bCounter];
+  if(num1Count < num1->noOfDigits && num1Count < num2->noOfDigits){
+    int op1 = num1->digits[num1Count] - borrow;
+    int op2 = num2->digits[num2Count];
     if(op2 > op1)
     {
       op1 = op1 + 10;
@@ -223,18 +228,74 @@ int  subtract(myInteger *a, int aCounter , myInteger *b, int bCounter,myInteger 
     }
     else
       borrow = 0;
-    c->digits[cCounter] = op1 - op2;
-    c->noOfDigits = cCounter+1;
-    subtract(a,aCounter + 1, b , bCounter + 1, c, cCounter + 1,borrow);
+    result->digits[resCount] = op1 - op2;
+    result->noOfDigits = resCount+1;
+    subtract(num1,num1Count + 1,num2,num2Count + 1, result, resCount + 1,borrow);
   }
-  else if(aCounter < a->noOfDigits){
-    int op1 = a->digits[aCounter] - borrow;
-    c->digits[cCounter] = op1;
-    c->noOfDigits = cCounter+1;
+  else if(num1Count < num1->noOfDigits){
+    int op1 = num1->digits[num1Count] - borrow;
+    result->digits[resCount] = op1;
+    result->noOfDigits = resCount+1;
     borrow = 0;
-    subtract(a,aCounter + 1, b , bCounter, c, cCounter + 1, 0);
+    subtract(num1,num1Count + 1,num2,num2Count,result,resCount + 1, 0);
   }
-  stripZero(c);
+  stripZero(result);
+}
+
+/* Function cuberoot
+ * Input: String which contains the value for which cube root needs to be calculated
+ * Output: Structure myInteger which contains the cube root value
+ *       The function is used to find the cube root of the number., which works using
+ *       divide and conquer method.
+ */
+myInteger cuberoot(char *num)
+{
+  int loop;
+  myInteger tempNum;
+  int cubeRootLen;
+  myInteger lowerNum,upperNum;
+  myInteger numTwo;
+  myInteger cubeRootVal;
+
+  memsetMyIntegertoZero(&tempNum);
+  generateMyInteger(&tempNum,num);
+  cubeRootLen = (tempNum.noOfDigits - 1) / 3 + 1;
+  char lowerbound[cubeRootLen+1], upperbound[cubeRootLen +2];
+  lowerbound[0] = '1';
+  upperbound[0] = '1';
+  for(loop = 1; loop < cubeRootLen; loop++) {
+    lowerbound[loop] = '0';
+    upperbound[loop] = '0';
+  }
+
+  upperbound[cubeRootLen] = '0';
+  upperbound[cubeRootLen + 1] = '\0';
+  lowerbound[cubeRootLen] = '\0';
+
+  generateMyInteger(&lowerNum, lowerbound);
+  generateMyInteger(&upperNum, upperbound);
+  generateMyInteger(&numTwo,"2");
+
+  while(1) {
+      myInteger tempadd;
+      myInteger temp,remainder;
+      add(lowerNum,0,upperNum,0,&tempadd,0,0);
+      divide(&tempadd,&numTwo,&temp,&remainder);
+      myInteger tempmul;
+      multiply(&temp,&temp,&tempmul);
+      myInteger tempcube;
+      multiply(&temp, &tempmul, &tempcube);
+      if(ComparemyInteger(tempcube,tempNum) == -1) {
+        cubeRootVal = temp;
+        break;
+      } else if(ComparemyInteger(tempcube,tempNum) == 1){
+        upperNum = temp;
+      } else {
+        lowerNum = temp;
+      }
+
+    }
+  return cubeRootVal;
 }
 
 
@@ -247,81 +308,41 @@ void main()
   char RSAplainHex[1024];
   char AESplainText[1024];
   char temp[1024];
-  int newlength;
-  myInteger m;
-  int loop;
+  myInteger cubeRootVal;
 
+
+  /* Converting lower case in Hex Num to Upper since bc (Basic Calculator) accepts only upper Case */
   memset(temp,0,sizeof(temp));
   snprintf(temp,sizeof(temp)-1,"echo %s | tr '[:lower:]' '[:upper:]'","c0eacf32dc0492464d9616fefc3d01f56589a137781bf6cf56784dea1c44ef52d61b1025655f370eb78646716f93e0a5");
-
   myPopen(temp,RSAcipherHex,sizeof(RSAcipherHex));
 
   printf("/******************** CUBE ROOT ATTACK ***********************/\n\n");
   printf("RSA CipherText Hex: %s\n",RSAcipherHex);
+
+  /* Converting Hexadecimal Number to Decimal Number using bc utility */
   memset(temp,0,sizeof(temp));
   snprintf(temp,sizeof(temp)-1,"echo \"ibase=16; %s\"|bc",RSAcipherHex);
-
   myPopen(temp,RSAcipherDec,sizeof(RSAcipherDec));
-  printf("RSA CipherText Dec: %s",RSAcipherDec);
-  printmyInteger(m);
-  memsetMyIntegertoZero(&m);
-  generateMyInteger(&m,RSAcipherDec);
-  newlength = (m.noOfDigits - 1) / 3 + 1;
-  char lowerbound[newlength+1], upperbound[newlength +2];
-  lowerbound[0] = '1';
-  upperbound[0] = '1';
-  for(loop = 1; loop < newlength; loop++) {
-    lowerbound[loop] = '0';
-    upperbound[loop] = '0';
-  }
+  printf("RSA CipherText Dec: %s\n",RSAcipherDec);
 
-  upperbound[newlength] = '0';
-  upperbound[newlength + 1] = '\0';
-  lowerbound[newlength] = '\0';
-  myInteger lb,ub;
-  generateMyInteger(&lb, lowerbound);
-  generateMyInteger(&ub, upperbound);
-  myInteger two;
-  generateMyInteger(&two,"2");
-  myInteger message;
+  /* Calculating the cube root of the Decimal Number which is the RSA plain text*/
+  cubeRootVal = cuberoot(RSAcipherDec);
+  memset(RSAplainDec,0,sizeof(RSAplainDec));
+  generateOrgInteger(&cubeRootVal,RSAplainDec);
+  printf("CubeRoot of Cipher: %s\n",RSAplainDec);
 
-  while(1) {
-      myInteger tempadd;
-      myInteger temp,remainder;
-      add(lb,0,ub,0,&tempadd,0,0);
-      divide(&tempadd,&two,&temp,&remainder);
-      myInteger tempmul;
-      multiply(&temp,&temp,&tempmul);
-      myInteger tempcube;
-      multiply(&temp, &tempmul, &tempcube);
-      if(ComparemyInteger(tempcube,m) == -1) {
-        message = temp;
-        //exit(0);
-        break;
-      } else if(ComparemyInteger(tempcube,m) == 1){
-        ub = temp;
-      } else {
-        lb = temp;
-      }
+  /* Converting Decimal to Hexadecimal Number to provide to AES decryption*/
+  memset(RSAplainHex,0,sizeof(RSAplainHex));
+  memset(temp,0,sizeof(temp));
+  snprintf(temp,sizeof(temp)-1,"echo \"obase=16; %s\"|bc",RSAplainDec);
+  myPopen(temp,RSAplainHex,sizeof(RSAplainHex));
+  printf("AES Key Hex       : %s\n",RSAplainHex);
 
-    }
-
-     memset(RSAplainDec,0,sizeof(RSAplainDec));
-     generateOrgInteger(&message,RSAplainDec);
-
-     printf("CubeRoot of Cipher: %s\n",RSAplainDec);
-     memset(RSAplainHex,0,sizeof(RSAplainHex));
-
-     memset(temp,0,sizeof(temp));
-     snprintf(temp,sizeof(temp)-1,"echo \"obase=16; %s\"|bc",RSAplainDec);
-     myPopen(temp,RSAplainHex,sizeof(RSAplainHex));
-     printf("AES Key Hex       : %s\n",RSAplainHex);
-
-
-     memset(temp,0,sizeof(temp));
-     snprintf(temp,sizeof(temp)-1,"echo \"fd0b934c23288975648cd1d03ed3c5e2\" | xxd -r -ps | openssl aes-128-ecb -d -K %s -nopad",RSAplainHex);
-     myPopen(temp,AESplainText,sizeof(AESplainText));
-     printf("AES plain Text    : %s\n",AESplainText);
-     printf("\n/********************    END     ***********************/\n\n");
+  /* Decrypting AES cipher text using AES Key */
+  memset(temp,0,sizeof(temp));
+  snprintf(temp,sizeof(temp)-1,"echo \"fd0b934c23288975648cd1d03ed3c5e2\" | xxd -r -ps | openssl aes-128-ecb -d -K %s -nopad",RSAplainHex);
+  myPopen(temp,AESplainText,sizeof(AESplainText));
+  printf("AES plain Text    : %s\n",AESplainText);
+  printf("\n/********************    END     ***********************/\n\n");
 
 }
