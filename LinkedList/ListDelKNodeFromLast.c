@@ -1,45 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "listAPIs.h"
 
-typedef struct ListStr list;
-
-struct ListStr
-{
-  int value;
-  list *next;
-};
-
-void insert(list **head, int value)
-{
-  list *tmp = malloc(sizeof(list));
-  tmp -> value = value;
-  tmp->next = NULL;
-  if((*head) == NULL)
-    *head = tmp;
-  else
-  {
-    tmp ->next = *head;
-    *head = tmp;
-  }
-}
-
-void printElements(list *head)
-{
-  list *tmp;
-  if(!head)
-    printf("List Empty\n");
-  else
-  {
-    tmp = head;
-    printf("Elements: ");
-    while(tmp)
-    {
-      printf("%d ",tmp->value);
-      tmp = tmp->next;
-    }
-    printf("\n");
-  }
-}
 
 void deleteKNodeFromLast(list **head, int k)
 {
@@ -82,14 +44,15 @@ void deleteKNodeFromLast(list **head, int k)
 void main()
 {
   list *head = NULL;
-  printElements(head);
   insert(&head,1);
+  deleteKNodeFromLast(&head,1);
+  print(head);
   insert(&head,2);
   insert(&head,3);
   insert(&head,4);
   insert(&head,5);
   insert(&head,6);
-  printElements(head);
-  deleteKNodeFromLast(&head,7);
-  printElements(head);
+  print(head);
+  deleteKNodeFromLast(&head,3);
+  print(head);
 }

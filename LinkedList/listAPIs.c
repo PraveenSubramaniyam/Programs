@@ -1,41 +1,36 @@
+#include <stdlib.h>
+#include "listAPIs.h"
 #include <stdio.h>
 
-typedef struct listStruct list;
-
-struct listStruct {
-  int value;
-  list *next;
-};
-
-list *head = NULL;
-
-void insert(int value)
+void insert(list **head, int value)
 {
   list *tmp;
   tmp = malloc(sizeof(list));
   tmp->value = value;
   tmp->next = NULL;
 
-  if(head == NULL)
-    head = tmp;
+  if((*head) == NULL)
+    (*head) = tmp;
   else
   {
-    tmp->next = head;
-    head = tmp;
+    tmp->next = *head;
+    *head = tmp;
   }
 }
 
-void delete(int value)
+
+int delete(list **head, int value)
 {
   list *prev = NULL, *tmp;
 
-  if(head == NULL)
+  if((*head) == NULL)
   {
     printf("List empty");
+    return -1;
   }
   else
   {
-    tmp = head;
+    tmp = *head;
     while(tmp != NULL)
     {
       if(tmp->value == value)
@@ -45,11 +40,14 @@ void delete(int value)
     }
 
     if(tmp == NULL)
+    {
       printf("Element %d Not found in the list",value);
+      return -1;
+    }
     else
     {
       if(prev == NULL)
-        head = head->next;
+        (*head) = (*head)->next;
       else
         prev->next = tmp->next;
 
@@ -57,9 +55,10 @@ void delete(int value)
       free(tmp);
     }
   }
+  return 0;
 }
 
-void search(int value)
+void search(list *head, int value)
 {
   list *tmp;
   tmp = head;
@@ -72,22 +71,19 @@ void search(int value)
     printf("Element not found\n");
 }
 
-void reverse()
+
+void print (list *head)
 {
-  if(head == NULL)
-    printf("List is Empty");
-}
+  list *tmp = head;
 
-void recurRev(list *node)
-{
-  if(node == NULL)
-    return ;
+  if (!tmp)
+	  printf("Empty List");
 
-  recurRev(node->next);
-  node->next->next = node;
-}
 
-void main()
-{
-
+  while(tmp != NULL)
+  {
+	  printf("%d ",tmp->value);
+	  tmp=tmp->next;
+  }
+  printf("\n");
 }
