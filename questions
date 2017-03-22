@@ -1,0 +1,9 @@
+1) Pattern Matching
+   Given a string and a pattern find the occurances of the pattern in the string.
+       -> naive method
+       -> KMP method
+2) Given one sorted array and a sum value find the two numbers which can sum to the given sum.
+3) Given one string. Find the first non-recurrance character in the string.
+4) Given two sorted arrays., Sorted them both 
+      -> use a diff combined array
+      -> use the same array. -- Do merge function from the backward.
